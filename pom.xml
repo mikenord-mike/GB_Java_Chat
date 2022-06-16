@@ -60,7 +60,7 @@
                         <!-- Default configuration for running with: mvn clean javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>ru.gb.mikenord.gb_java_chat/ru.gb.mikenord.gb_java_chat.HelloApplication
+                            <mainClass>ru.gb.mikenord.gb_java_chat/ru.gb.mikenord.gb_java_chat.client.ChatClientApp
                             </mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
