@@ -42,7 +42,8 @@ public class InMemoryAuthService implements AuthService {
     @Override
     public String getNickByLoginAndPassword(String login, String password) {
         return users.stream()
-                .filter(user -> login.equals(user.getLogin()) && password.equals(user.getPassword()))
+                .filter(user -> login.equals(user.getLogin())
+                        && password.equals(user.getPassword()))
                 .map(UserData::getNick)
                 .findAny()
                 .orElse(null);
