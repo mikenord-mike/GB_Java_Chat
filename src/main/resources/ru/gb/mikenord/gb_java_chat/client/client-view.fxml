@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ListView?>
 <VBox alignment="CENTER" spacing="10.0" xmlns:fx="http://javafx.com/fxml"
       fx:controller="ru.gb.mikenord.gb_java_chat.client.ChatController">
     <padding>
@@ -17,14 +18,19 @@
     <HBox fx:id="authBox" spacing="10.0">
         <TextField fx:id="loginField" promptText="login"/>
         <PasswordField fx:id="passField" promptText="password"/>
-        <Button text="Sign in"  onAction="#signInBtnClick"/>
+        <Button text="Sign in" onAction="#signInBtnClick"/>
     </HBox>
 
-    <TextArea fx:id="chatArea" editable="false" VBox.vgrow="ALWAYS" focusTraversable="false"/>
+    <HBox spacing="10.0">
+        <VBox spacing="10.0">
+            <TextArea fx:id="chatArea" editable="false" VBox.vgrow="ALWAYS" focusTraversable="false"/>
 
-    <HBox fx:id="messageBox" visible="false" spacing="10.0">
-        <TextField fx:id="chatMsgField" HBox.hgrow="ALWAYS"/>
-        <Button text="Send" defaultButton="true" onAction="#clickSendButton"/>
+            <HBox fx:id="messageBox" visible="false" spacing="10.0">
+                <TextField fx:id="chatMsgField" HBox.hgrow="ALWAYS"/>
+                <Button text="Send" defaultButton="true" onAction="#clickSendButton"/>
+            </HBox>
+        </VBox>
+
+        <ListView fx:id="clientsList" visible="false" minWidth="0" maxWidth="200" onMouseClicked="#selectClient"/>
     </HBox>
-
 </VBox>
