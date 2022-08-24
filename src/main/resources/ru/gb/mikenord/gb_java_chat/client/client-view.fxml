@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.PasswordField?>
+<VBox alignment="CENTER" spacing="10.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.gb.mikenord.gb_java_chat.client.ChatController">
+    <padding>
+        <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
+    </padding>
+
+    <HBox fx:id="authBox" spacing="10.0">
+        <TextField fx:id="loginField" promptText="login"/>
+        <PasswordField fx:id="passField" promptText="password"/>
+        <Button text="Sign in"  onAction="#signInBtnClick"/>
+    </HBox>
+
+    <TextArea fx:id="chatArea" editable="false" VBox.vgrow="ALWAYS" focusTraversable="false"/>
+
+    <HBox fx:id="messageBox" visible="false" spacing="10.0">
+        <TextField fx:id="chatMsgField" HBox.hgrow="ALWAYS"/>
+        <Button text="Send" defaultButton="true" onAction="#clickSendButton"/>
+    </HBox>
+
+</VBox>

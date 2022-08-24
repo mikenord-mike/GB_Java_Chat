@@ -3,6 +3,6 @@ module ru.gb.mikenord.gb_java_chat {
     requires javafx.fxml;
 
 
-    opens ru.gb.mikenord.gb_java_chat to javafx.fxml;
-    exports ru.gb.mikenord.gb_java_chat;
+    exports ru.gb.mikenord.gb_java_chat.client;
+    opens ru.gb.mikenord.gb_java_chat.client to javafx.fxml;
 }
