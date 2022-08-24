@@ -67,7 +67,7 @@ public enum ChatCommand {
     static final Map<String, ChatCommand> commandMap = Arrays.stream(values())
             .collect(Collectors.toMap(ChatCommand::getCommand, Function.identity()));
 
-    ChatCommand(String command) {
+     ChatCommand(String command) {
         this.command = command;
     }
 
