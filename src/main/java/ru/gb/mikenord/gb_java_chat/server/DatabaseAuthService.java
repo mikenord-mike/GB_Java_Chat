@@ -1,9 +1,10 @@
 package ru.gb.mikenord.gb_java_chat.server;
 
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InMemoryAuthService implements AuthService {
+public class DatabaseAuthService implements AuthService {
 
     private static class UserData {
         private final String nick;
@@ -31,10 +32,20 @@ public class InMemoryAuthService implements AuthService {
 
     private final List<UserData> users;
 
-    public InMemoryAuthService() {
+    public DatabaseAuthService() {
         users = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            users.add(new UserData("nick" + i, "login" + i, "pass" + i));
+        try (Connection connection = DriverManager.getConnection("" +
+                "jdbc:sqlite:/media/mikenord/my_Share/__GB/GB_Java_Chat/src/main/" +
+                "resources/ru/gb/mikenord/gb_java_chat/client/clients.db")) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet =  statement.executeQuery("SELECT nickname,login,password FROM auth;");
+            while (resultSet.next()) {
+                users.add(new UserData(resultSet.getString(1),
+                        resultSet.getString(2),
+                        resultSet.getString(3)));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 

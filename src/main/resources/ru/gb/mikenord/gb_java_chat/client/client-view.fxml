@@ -18,7 +18,7 @@
     <HBox fx:id="authBox" spacing="10.0">
         <TextField fx:id="loginField" promptText="login"/>
         <PasswordField fx:id="passField" promptText="password"/>
-        <Button text="Sign in" onAction="#signInBtnClick"/>
+        <Button text="Sign in" minWidth="65.0" onAction="#signInBtnClick"/>
     </HBox>
 
     <HBox spacing="10.0">
