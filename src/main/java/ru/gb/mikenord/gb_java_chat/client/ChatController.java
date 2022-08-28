@@ -1,18 +1,28 @@
 package ru.gb.mikenord.gb_java_chat.client;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.stage.Stage;
+
 import java.io.IOException;
 import java.util.Optional;
 
+import static ru.gb.mikenord.gb_java_chat.ChatCommand.*;
+
 public class ChatController {
+    @FXML
+    private ListView<String> clientsList;
     @FXML
     private HBox authBox;
     @FXML
     private TextField loginField;
     @FXML
     private PasswordField passField;
+    @FXML
+    public Button nickChangeButton;
     @FXML
     private HBox messageBox;
     @FXML
@@ -21,6 +31,8 @@ public class ChatController {
     private TextField chatMsgField;
 
     private final ChatClient client;
+    private Stage refStage;
+    private String selectedNick;
 
     public ChatController() {
         this.client = new ChatClient(this);
@@ -56,7 +68,12 @@ public class ChatController {
         if (message.isBlank()) {
             return;
         }
-        client.sendMessage(message);
+        if (selectedNick != null) {
+            client.sendMessage(PRIVATE_MESSAGE, selectedNick, message);
+            selectedNick = null;
+        } else {
+            client.sendMessage(MESSAGE, message);
+        }
         chatMsgField.clear();
         chatMsgField.requestFocus();
     }
@@ -67,14 +84,72 @@ public class ChatController {
 
     public void setAuth(boolean success) {
         authBox.setVisible(!success);
+        nickChangeButton.setVisible(success);
         messageBox.setVisible(success);
+        clientsList.setVisible(success);
     }
 
     public void signInBtnClick() {
-        client.sendMessage("/auth " + loginField.getText() + " " + passField.getText());
+        client.sendMessage(AUTH_REQUEST, loginField.getText(), passField.getText());
+    }
+
+    public HBox getAuthBox() {
+        return authBox;
+    }
+
+    public TextArea getChatArea() {
+        return chatArea;
     }
 
     public ChatClient getClient() {
         return client;
+    }
+
+    public Stage getRefStage() {
+        return refStage;
+    }
+
+    public void setRefStage(Stage refStage) {
+        this.refStage = refStage;
+    }
+
+    public ListView<String> getClientsList() {
+        return clientsList;
+    }
+
+    public void selectClient(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 2) {
+            final String selectedNick = clientsList.getSelectionModel().getSelectedItem();
+            if (selectedNick != null && !selectedNick.isEmpty()) {
+                this.selectedNick = selectedNick;
+            }
+        }
+    }
+
+    public void updateClientList(String[] clients) {
+        clientsList.getItems().clear();
+        clientsList.getItems().addAll(clients);
+    }
+
+    public void nickChangeBtnClick(ActionEvent actionEvent) {
+
+        TextInputDialog dialog = new TextInputDialog(client.getCurrentNick());
+
+        dialog.setTitle("Смена ника");
+        dialog.setHeaderText("Введите новый ник");
+
+        Optional<String> result = dialog.showAndWait();
+
+        if (result.isPresent()) {
+            String name = result.get();
+            if (name.isBlank()) {
+                return;
+            }
+            if (clientsList.getItems().stream().anyMatch(name::equals)) {
+                chatArea.appendText( "Такой ник уже зарегистрирован в системе\n");
+                return;
+            }
+            client.setNewNick(name);
+        }
     }
 }
