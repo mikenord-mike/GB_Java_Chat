@@ -22,6 +22,14 @@ public enum ChatCommand {
         }
     },
 
+    NICK_CHANGE("/nick_change") {
+        @Override
+        public String[] parse(String commandText) {
+            final String[] split = commandText.split(TOKEN_DELIMITER);
+            return new String[]{split[1], split[2]};
+        }
+    },
+
     END("/end") {
         @Override
         public String[] parse(String commandText) {

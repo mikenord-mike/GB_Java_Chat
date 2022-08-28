@@ -14,8 +14,10 @@ public class ChatClient {
     private DataInputStream in;
     private DataOutputStream out;
     private final ChatController controller;
-    private boolean isAuthOk = false;
 
+    private String currentNick;
+
+    private boolean isAuthOk = false;
     public ChatClient(ChatController controller) {
         this.controller = controller;
     }
@@ -75,9 +77,9 @@ public class ChatClient {
                 return false;
             }
             if (command == AUTH_SUCCESS) {
-                final String nick = params[0];
+                currentNick = params[0];
                 Platform.runLater(() -> controller.setAuth(true));
-                Platform.runLater(() -> controller.addMessage(nick + " - успешная авторизация"));
+                Platform.runLater(() -> controller.addMessage(currentNick + " - успешная авторизация"));
                 return true;
             } else if (command == ERROR) {
                 Platform.runLater(() -> controller.addMessage("Ошибка авторизации: " + params[0]));
@@ -132,5 +134,15 @@ public class ChatClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public String getCurrentNick() {
+        return currentNick;
+    }
+
+    public void setNewNick(String newNick) {
+        String oldNick = this.currentNick;
+        this.currentNick = newNick;
+        sendMessage(NICK_CHANGE, oldNick, newNick);
     }
 }

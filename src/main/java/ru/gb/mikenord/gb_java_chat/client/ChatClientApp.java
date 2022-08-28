@@ -14,7 +14,7 @@ public class ChatClientApp extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(ChatClientApp.class.getResource("client-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 400 , 300);   // 600-400
+        Scene scene = new Scene(fxmlLoader.load(), 450 , 300);   // 600-400
         stage.setResizable(false);
         stage.setTitle("Mikenord Chat client");
         stage.setScene(scene);

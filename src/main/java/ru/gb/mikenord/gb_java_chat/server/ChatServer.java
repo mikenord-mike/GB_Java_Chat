@@ -60,4 +60,11 @@ public class ChatServer {
         clients.get(toNick).sendMessage(MESSAGE, "От '" + from.getNick() + "': " + privateMessage);
         from.sendMessage(MESSAGE, "Для " + toNick + ": " + privateMessage);
     }
+
+    public void changeNick(String[] params) {
+        clients.put(params[1], clients.get(params[0]));
+        clients.remove(params[0]);
+        broadcastClientsList();
+        broadcast(MESSAGE, "Пользователь '" + params[0] + "' сменил ник на '" + params[1] + "'");
+    }
 }

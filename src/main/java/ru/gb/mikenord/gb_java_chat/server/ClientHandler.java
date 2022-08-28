@@ -128,6 +128,10 @@ public class ClientHandler {
                     }
                 } else if (command == MESSAGE) {
                     server.broadcast(MESSAGE, nick + ": " + params[0]);
+                } else if (command == NICK_CHANGE) {
+                    this.nick = params[1];
+                    authService.nickChange(params);
+                    server.changeNick(params);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

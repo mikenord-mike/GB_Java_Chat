@@ -1,5 +1,6 @@
 package ru.gb.mikenord.gb_java_chat.client;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
@@ -20,6 +21,8 @@ public class ChatController {
     private TextField loginField;
     @FXML
     private PasswordField passField;
+    @FXML
+    public Button nickChangeButton;
     @FXML
     private HBox messageBox;
     @FXML
@@ -81,6 +84,7 @@ public class ChatController {
 
     public void setAuth(boolean success) {
         authBox.setVisible(!success);
+        nickChangeButton.setVisible(success);
         messageBox.setVisible(success);
         clientsList.setVisible(success);
     }
@@ -125,5 +129,27 @@ public class ChatController {
     public void updateClientList(String[] clients) {
         clientsList.getItems().clear();
         clientsList.getItems().addAll(clients);
+    }
+
+    public void nickChangeBtnClick(ActionEvent actionEvent) {
+
+        TextInputDialog dialog = new TextInputDialog(client.getCurrentNick());
+
+        dialog.setTitle("Смена ника");
+        dialog.setHeaderText("Введите новый ник");
+
+        Optional<String> result = dialog.showAndWait();
+
+        if (result.isPresent()) {
+            String name = result.get();
+            if (name.isBlank()) {
+                return;
+            }
+            if (clientsList.getItems().stream().anyMatch(name::equals)) {
+                chatArea.appendText( "Такой ник уже зарегистрирован в системе\n");
+                return;
+            }
+            client.setNewNick(name);
+        }
     }
 }

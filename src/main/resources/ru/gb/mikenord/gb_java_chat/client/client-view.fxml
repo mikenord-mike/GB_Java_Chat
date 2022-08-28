@@ -14,13 +14,15 @@
     <padding>
         <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
     </padding>
-
-    <HBox fx:id="authBox" spacing="10.0">
-        <TextField fx:id="loginField" promptText="login"/>
-        <PasswordField fx:id="passField" promptText="password"/>
-        <Button text="Sign in" minWidth="65.0" onAction="#signInBtnClick"/>
+<HBox>
+        <HBox fx:id="authBox" spacing="10.0">
+            <TextField fx:id="loginField" promptText="login"/>
+            <PasswordField fx:id="passField" promptText="password"/>
+            <Button text="Sign in" minWidth="65.0" onAction="#signInBtnClick"/>
+        </HBox>
+    <Button fx:id="nickChangeButton" text="Nick change
+" visible="false" minWidth="65.0" onAction="#nickChangeBtnClick" />
     </HBox>
-
     <HBox spacing="10.0">
         <VBox spacing="10.0">
             <TextArea fx:id="chatArea" editable="false" VBox.vgrow="ALWAYS" focusTraversable="false"/>
