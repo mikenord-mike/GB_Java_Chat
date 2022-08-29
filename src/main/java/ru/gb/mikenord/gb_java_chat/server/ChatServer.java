@@ -1,22 +1,25 @@
 package ru.gb.mikenord.gb_java_chat.server;
 
+import ru.gb.mikenord.gb_java_chat.ChatCommand;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static ru.gb.mikenord.gb_java_chat.ChatCommand.*;
 
 public class ChatServer {
-
-    private final List<ClientHandler> clients;
+    private final Map<String, ClientHandler> clients;
 
     public ChatServer() {
-        this.clients = new ArrayList<>();
+        this.clients = new HashMap<>();
     }
 
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(8189);
-             AuthService authService = new InMemoryAuthService()) {
+             AuthService authService = new DatabaseAuthService()) {
             while (true) {
                 System.out.println("Ожидаю подключения...");
                 final Socket socket = serverSocket.accept();
@@ -28,29 +31,40 @@ public class ChatServer {
         }
     }
 
-    public void broadcast(String message) {
-        clients.forEach(p -> p.sendMessage(message));
-
+    public void broadcast(ChatCommand command, String message) {
+        clients.values().forEach(p -> p.sendMessage(command, message));
     }
 
     public void subscribe(ClientHandler client) {
-        clients.add(client);
+        clients.put(client.getNick(), client);
+        broadcastClientsList();
+    }
+
+    private void broadcastClientsList() {
+        String nicks = clients.values().stream()
+                .map(ClientHandler::getNick)
+                .collect(Collectors.joining(" "));
+        broadcast(CLIENT_LIST, nicks);
     }
 
     public boolean isNickBusy(String nick) {
-        return clients.stream()
-                .anyMatch(p -> nick.equals(p.getNick()));
-
+        return clients.get(nick) != null;
     }
 
     public void unsubscribe(ClientHandler client) {
-        clients.remove(client);
+        clients.remove(client.getNick());
+        broadcastClientsList();
     }
 
-    public void sendPrivateMessage(String privateNick, String privateMessage, String fromNick) {
-        final String sendMsg = "/w" + fromNick + "/w" + privateMessage;
-        clients.stream()
-                .filter(p -> privateNick.equals(p.getNick()))
-                .forEach(p -> p.sendMessage(sendMsg));
+    public void sendPrivateMessage(ClientHandler from, String toNick, String privateMessage) {
+        clients.get(toNick).sendMessage(MESSAGE, "От '" + from.getNick() + "': " + privateMessage);
+        from.sendMessage(MESSAGE, "Для " + toNick + ": " + privateMessage);
+    }
+
+    public void changeNick(String[] params) {
+        clients.put(params[1], clients.get(params[0]));
+        clients.remove(params[0]);
+        broadcastClientsList();
+        broadcast(MESSAGE, "Пользователь '" + params[0] + "' сменил ник на '" + params[1] + "'");
     }
 }
