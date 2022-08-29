@@ -2,10 +2,16 @@ package ru.gb.mikenord.gb_java_chat.client;
 
 import javafx.application.Platform;
 import ru.gb.mikenord.gb_java_chat.ChatCommand;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+
+import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static ru.gb.mikenord.gb_java_chat.ChatCommand.*;
 
@@ -14,10 +20,12 @@ public class ChatClient {
     private DataInputStream in;
     private DataOutputStream out;
     private final ChatController controller;
-
     private String currentNick;
+    private String login;
+    private Path msgListFile;
 
     private boolean isAuthOk = false;
+
     public ChatClient(ChatController controller) {
         this.controller = controller;
     }
@@ -35,6 +43,26 @@ public class ChatClient {
                     controller.getRefStage().setHeight(400);
                     controller.getClientsList().setMinWidth(200);
                     controller.getClientsList().setVisible(true);
+                    msgListFile = Path.of("src", "main", "resources", "ru", "gb", "mikenord"
+                            , "gb_java_chat", "client", login + ".msglist");
+//                    msgListFile = Path.of(login + ".msglist");
+                    if (Files.exists(msgListFile)) {
+                        List<String> msgList = Files
+                                .lines(msgListFile, StandardCharsets.UTF_8)
+                                .collect(Collectors.toList());
+                        if (msgList.size() > 0) {
+                            int maxLines = Math.min(msgList.size(), 100);
+                            Platform.runLater(() -> controller.addMessage(">>>восстановление предыдущих записей>>>"));
+                            for (int i = msgList.size() - maxLines; i < msgList.size(); i++) {
+                                String tmpLine = msgList.get(i);
+                                Platform.runLater(() -> controller.addMessage(tmpLine));
+                            }
+                            Platform.runLater(() -> controller.addMessage("---начало текущих записей---"));
+
+                        }
+                    } else {
+                        Files.createFile(msgListFile);
+                    }
                     readMessages();
                 }
             } catch (IOException e) {
@@ -122,6 +150,7 @@ public class ChatClient {
             }
             if (command == MESSAGE || command == ERROR) {
                 Platform.runLater(() -> controller.addMessage(params[0]));
+                Files.writeString(msgListFile, params[0] + "\n", StandardOpenOption.APPEND);
             } else if (command == CLIENT_LIST) {
                 Platform.runLater(() -> controller.updateClientList(params));
             }
@@ -144,5 +173,9 @@ public class ChatClient {
         String oldNick = this.currentNick;
         this.currentNick = newNick;
         sendMessage(NICK_CHANGE, oldNick, newNick);
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
     }
 }

@@ -90,6 +90,7 @@ public class ChatController {
     }
 
     public void signInBtnClick() {
+        client.setLogin(loginField.getText());
         client.sendMessage(AUTH_REQUEST, loginField.getText(), passField.getText());
     }
 
