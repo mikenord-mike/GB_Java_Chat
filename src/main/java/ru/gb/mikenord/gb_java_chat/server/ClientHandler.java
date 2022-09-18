@@ -58,15 +58,18 @@ public class ClientHandler {
                     if (nick != null) {
                         if (server.isNickBusy(nick)) {
                             sendMessage(ERROR, "такой пользователь уже авторизован");
+                            server.serverLogger.warning("Ошибка авторизации - такой пользователь уже авторизован");
                             continue;
                         }
                         sendMessage(AUTH_SUCCESS, nick);
                         this.nick = nick;
                         server.broadcast(MESSAGE, "Пользователь " + nick + " зашел в чат");
+                        server.serverLogger.warning("Успешная авторизация - "+ nick + " зашел в чат");
                         server.subscribe(this);
                         return true;
                     } else {
                         sendMessage(ERROR, "неверные логин и пароль");
+                        server.serverLogger.warning("Ошибка авторизации - неверные логин и пароль");
                     }
                 }
             } catch (IOException e) {
