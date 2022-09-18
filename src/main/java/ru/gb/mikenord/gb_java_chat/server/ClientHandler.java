@@ -1,9 +1,12 @@
 package ru.gb.mikenord.gb_java_chat.server;
 
+import ru.gb.mikenord.gb_java_chat.ChatCommand;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+
+import static ru.gb.mikenord.gb_java_chat.ChatCommand.*;
 
 public class ClientHandler {
     private Socket socket;
@@ -22,8 +25,14 @@ public class ClientHandler {
             this.out = new DataOutputStream(socket.getOutputStream());
             new Thread(() -> {
                 try {
-                    authenticate();
-                    readMessages();
+                    final boolean isAuth = authenticate();
+                    if (isAuth) {
+                        readMessages();
+                    } else {
+                        sendMessage(END);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 } finally {
                     closeConnection();
                 }
@@ -33,27 +42,34 @@ public class ClientHandler {
         }
     }
 
-    private void authenticate() {
+    private boolean authenticate() throws InterruptedException {
         while (true) {
             try {
                 final String message = in.readUTF();
-                if (message.startsWith("/auth")) {
-                    final String[] split = message.split("\\p{Blank}+");
-                    final String login = split[1];
-                    final String password = split[2];
+                final ChatCommand command = ChatCommand.getCommand(message);
+                final String[] params = command.parse(message);
+                if (command == END) {
+                    return false;
+                }
+                if (command == AUTH_REQUEST) {
+                    final String login = params[0];
+                    final String password = params[1];
                     final String nick = authService.getNickByLoginAndPassword(login, password);
                     if (nick != null) {
                         if (server.isNickBusy(nick)) {
-                            sendMessage("/user_already_logged");
+                            sendMessage(ERROR, "такой пользователь уже авторизован");
+                            server.serverLogger.warning("Ошибка авторизации - такой пользователь уже авторизован");
                             continue;
                         }
-                        sendMessage("/auth_ok " + nick);
+                        sendMessage(AUTH_SUCCESS, nick);
                         this.nick = nick;
-                        server.broadcast("Пользователь " + nick + " зашел в чат");
+                        server.broadcast(MESSAGE, "Пользователь " + nick + " зашел в чат");
+                        server.serverLogger.warning("Успешная авторизация - "+ nick + " зашел в чат");
                         server.subscribe(this);
-                        break;
+                        return true;
                     } else {
-                        sendMessage("/invalid_login_and_pass");
+                        sendMessage(ERROR, "неверные логин и пароль");
+                        server.serverLogger.warning("Ошибка авторизации - неверные логин и пароль");
                     }
                 }
             } catch (IOException e) {
@@ -63,7 +79,7 @@ public class ClientHandler {
     }
 
     private void closeConnection() {
-        sendMessage("/end");
+        sendMessage(END);
         if (in != null) {
             try {
                 in.close();
@@ -88,9 +104,9 @@ public class ClientHandler {
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(ChatCommand command, String... params) {
         try {
-            out.writeUTF(message);
+            out.writeUTF(command.collectMessage(params));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -99,21 +115,26 @@ public class ClientHandler {
     private void readMessages() {
         while (true) {
             try {
-                String message = in.readUTF();
-                if ("/end".equalsIgnoreCase(message)) {
+                final String message = in.readUTF();
+                final ChatCommand command = ChatCommand.getCommand(message);
+                final String[] params = command.parse(message);
+                if (command == END) {
                     break;
                 }
-                if (message.startsWith("/w ")) {
-                    final String privateNick = message.split("\\p{Blank}+")[1];
-                    if (server.isNickBusy(privateNick)) {
-                        final String privateMessage = message
-                                .split("/w" + "\\p{Blank}+" + privateNick + "\\p{Blank}+")[1];
-                        server.sendPrivateMessage(privateNick, privateMessage, nick);
+                if (command == PRIVATE_MESSAGE) {
+                    final String toNick = params[0];
+                    final String privateMessage = params[1];
+                    if (server.isNickBusy(toNick)) {
+                        server.sendPrivateMessage(this, toNick, privateMessage);
                     } else {
-                        sendMessage("Пользователя с ником '" + privateNick + "' не существует");
+                        sendMessage(ERROR, "Пользователь '" + toNick + "' не авторизован");
                     }
-                } else {
-                    server.broadcast(nick + ": " + message);
+                } else if (command == MESSAGE) {
+                    server.broadcast(MESSAGE, nick + ": " + params[0]);
+                } else if (command == NICK_CHANGE) {
+                    this.nick = params[1];
+                    authService.nickChange(params);
+                    server.changeNick(params);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

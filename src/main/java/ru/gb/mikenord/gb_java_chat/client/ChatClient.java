@@ -1,17 +1,30 @@
 package ru.gb.mikenord.gb_java_chat.client;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import javafx.application.Platform;
+import ru.gb.mikenord.gb_java_chat.ChatCommand;
+
+import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static ru.gb.mikenord.gb_java_chat.ChatCommand.*;
 
 public class ChatClient {
-
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
-
     private final ChatController controller;
+    private String currentNick;
+    private String login;
+    private Path msgListFile;
+
+    private boolean isAuthOk = false;
 
     public ChatClient(ChatController controller) {
         this.controller = controller;
@@ -24,30 +37,80 @@ public class ChatClient {
 
         new Thread(() -> {
             try {
-                waitAuth();
-                readMessages();
+                isAuthOk = waitAuth();
+                if (isAuthOk) {
+                    controller.getRefStage().setWidth(600);
+                    controller.getRefStage().setHeight(400);
+                    controller.getClientsList().setMinWidth(200);
+                    controller.getClientsList().setVisible(true);
+                    msgListFile = Path.of("src", "main", "resources", "ru", "gb", "mikenord"
+                            , "gb_java_chat", "client", login + ".msglist");
+//                    msgListFile = Path.of(login + ".msglist");
+                    if (Files.exists(msgListFile)) {
+                        List<String> msgList = Files
+                                .lines(msgListFile, StandardCharsets.UTF_8)
+                                .collect(Collectors.toList());
+                        if (msgList.size() > 0) {
+                            int maxLines = Math.min(msgList.size(), 100);
+                            Platform.runLater(() -> controller.addMessage(">>>восстановление предыдущих записей>>>"));
+                            for (int i = msgList.size() - maxLines; i < msgList.size(); i++) {
+                                String tmpLine = msgList.get(i);
+                                Platform.runLater(() -> controller.addMessage(tmpLine));
+                            }
+                            Platform.runLater(() -> controller.addMessage("---начало текущих записей---"));
+
+                        }
+                    } else {
+                        Files.createFile(msgListFile);
+                    }
+                    readMessages();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
                 closeConnection();
-                System.exit(0);
+                Platform.runLater(() -> System.exit(0));
+            }
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(120000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (!isAuthOk) {
+                controller.getAuthBox().setVisible(false);
+                controller.getChatArea().appendText("Тайм-аут!\nАутентификация не выполнена...\n");
+                controller.getChatArea().appendText("Работа будет завершена через 5 секунд... ");
+                for (int i = 0; i < 5; i++) {
+                    try {
+                        Thread.sleep(1000);
+                        controller.getChatArea().appendText(">");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                sendMessage(END);
             }
         }).start();
     }
 
-    private void waitAuth() throws IOException {
+    private boolean waitAuth() throws IOException {
         while (true) {
             final String message = in.readUTF();
-            if (message.startsWith("/auth_ok")) {
-                String[] split = message.split("\\p{Blank}+");
-                String nick = split[1];
-                controller.addMessage("Успешная авторизация под ником " + nick);
-                controller.setAuth(true);
-                break;
-            } else if (message.startsWith("/user_already_logged")) {
-                controller.addMessage("Пользователь уже авторизован");
-            } else if (message.startsWith("/invalid_login_and_pass")) {
-                controller.addMessage("Неверные логин и пароль");
+            final ChatCommand command = ChatCommand.getCommand(message);
+            final String[] params = command.parse(message);
+            if (command == END) {
+                return false;
+            }
+            if (command == AUTH_SUCCESS) {
+                currentNick = params[0];
+                Platform.runLater(() -> controller.setAuth(true));
+                Platform.runLater(() -> controller.addMessage(currentNick + " - успешная авторизация"));
+                return true;
+            } else if (command == ERROR) {
+                Platform.runLater(() -> controller.addMessage("Ошибка авторизации: " + params[0]));
             }
         }
     }
@@ -79,26 +142,40 @@ public class ChatClient {
     private void readMessages() throws IOException {
         while (true) {
             String message = in.readUTF();
-            if ("/end".equals(message)) {
-                controller.setAuth(false);
+            final ChatCommand command = ChatCommand.getCommand(message);
+            final String[] params = command.parse(message);
+            if (command == END) {
+                Platform.runLater(() -> controller.setAuth(false));
                 break;
             }
-            if (message.startsWith("/w")) {
-                final String[] split = message.split("/w\\p{Blank}*");
-                final String senderNick = split[1];
-                final String privateMessage = split[2];
-                controller.addMessage("Сообщение от '" + senderNick + "' :" + privateMessage);
-            } else {
-                controller.addMessage(message);
+            if (command == MESSAGE || command == ERROR) {
+                Platform.runLater(() -> controller.addMessage(params[0]));
+                Files.writeString(msgListFile, params[0] + "\n", StandardOpenOption.APPEND);
+            } else if (command == CLIENT_LIST) {
+                Platform.runLater(() -> controller.updateClientList(params));
             }
         }
     }
 
-    public void sendMessage(String message) {
+    public void sendMessage(ChatCommand command, String... params) {
         try {
-            out.writeUTF(message);
+            out.writeUTF(command.collectMessage(params));
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public String getCurrentNick() {
+        return currentNick;
+    }
+
+    public void setNewNick(String newNick) {
+        String oldNick = this.currentNick;
+        this.currentNick = newNick;
+        sendMessage(NICK_CHANGE, oldNick, newNick);
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
     }
 }
